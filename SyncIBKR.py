@@ -55,7 +55,7 @@ def get_diff(old_acts, new_acts):
 
 
 class SyncIBKR:
-    IBKRCATEGORY = "d6a6e5b3-f1d8-421d-b7c3-139e5acfa857"
+    IBKRCATEGORY = "0494d003-b0d3-468a-9674-ad642d6b7a57"
 
     def __init__(self, ghost_host, ibkrtoken, ibkrquery, ghost_token, ghost_currency):
         self.ghost_token = ghost_token
