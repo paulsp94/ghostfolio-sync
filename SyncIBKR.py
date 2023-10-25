@@ -13,7 +13,7 @@ def get_cash_amount_from_flex(query):
     except Exception as e:
         print(e)
     try:
-        cash += query.FlexStatements[0].CashReport[0].endingCashPaxos
+        cash += query.FlexStatements[0].CashReport[0].endingCashPaxos or 0
     except Exception as e:
         print(e)
     return cash
@@ -21,7 +21,7 @@ def get_cash_amount_from_flex(query):
 
 def generate_chunks(lst, n):
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        yield lst[i : i + n]
 
 
 def format_act(act):
@@ -33,7 +33,7 @@ def format_act(act):
         "quantity": act["quantity"],
         "symbol": act.get("symbol", symbol_nested),
         "type": act["type"],
-        "unitPrice": act["unitPrice"]
+        "unitPrice": act["unitPrice"],
     }
 
 
@@ -55,7 +55,7 @@ def get_diff(old_acts, new_acts):
 
 
 class SyncIBKR:
-    IBKRCATEGORY = "9da3a8a7-4795-43e3-a6db-ccb914189737"
+    IBKRCATEGORY = "d6a6e5b3-f1d8-421d-b7c3-139e5acfa857"
 
     def __init__(self, ghost_host, ibkrtoken, ibkrquery, ghost_token, ghost_currency):
         self.ghost_token = ghost_token
@@ -87,6 +87,10 @@ class SyncIBKR:
                     symbol = trade.symbol.replace(".USD-PAXOS", "") + "USD"
                 elif "VUAA" in trade.symbol:
                     symbol = trade.symbol + ".L"
+                elif "VWRP" in trade.symbol:
+                    symbol = trade.symbol + ".L"
+                elif "EUR" in trade.symbol:
+                    symbol = trade.symbol.replace(".", "") + "=X"
                 if trade.buySell == BuySell.BUY:
                     buysell = "BUY"
                 elif trade.buySell == BuySell.SELL:
@@ -95,18 +99,20 @@ class SyncIBKR:
                     print("trade is not buy or sell (ignoring): %s", trade)
                     continue
 
-                activities.append({
-                    "accountId": account_id,
-                    "comment": None,
-                    "currency": trade.currency,
-                    "dataSource": "YAHOO",
-                    "date": iso_format,
-                    "fee": float(0),
-                    "quantity": abs(float(trade.quantity)),
-                    "symbol": symbol.replace(" ", "-"),
-                    "type": buysell,
-                    "unitPrice": float(trade.tradePrice)
-                })
+                activities.append(
+                    {
+                        "accountId": account_id,
+                        "comment": None,
+                        "currency": trade.currency,
+                        "dataSource": "YAHOO",
+                        "date": iso_format,
+                        "fee": float(0),
+                        "quantity": abs(float(trade.quantity)),
+                        "symbol": symbol.replace(" ", "-"),
+                        "type": buysell,
+                        "unitPrice": float(trade.tradePrice),
+                    }
+                )
 
         diff = get_diff(self.get_all_acts_for_account(account_id), activities)
         if len(diff) == 0:
@@ -125,15 +131,15 @@ class SyncIBKR:
             "currency": self.ghost_currency,
             "isExcluded": False,
             "name": "IBKR",
-            "platformId": self.IBKRCATEGORY
+            "platformId": self.IBKRCATEGORY,
         }
 
         url = f"{self.ghost_host}/api/v1/account/{account_id}"
 
         payload = json.dumps(account)
         headers = {
-            'Authorization': f"Bearer {self.ghost_token}",
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {self.ghost_token}",
+            "Content-Type": "application/json",
         }
         try:
             response = requests.request("PUT", url, headers=headers, data=payload)
@@ -151,7 +157,7 @@ class SyncIBKR:
 
         payload = {}
         headers = {
-            'Authorization': f"Bearer {self.ghost_token}",
+            "Authorization": f"Bearer {self.ghost_token}",
         }
         try:
             response = requests.request("DELETE", url, headers=headers, data=payload)
@@ -165,11 +171,13 @@ class SyncIBKR:
         chunks = generate_chunks(bulk, 10)
         for acts in chunks:
             url = f"{self.ghost_host}/api/v1/import"
-            formatted_acts = json.dumps({"activities": sorted(acts, key=lambda x: x["date"])})
+            formatted_acts = json.dumps(
+                {"activities": sorted(acts, key=lambda x: x["date"])}
+            )
             payload = formatted_acts
             headers = {
-                'Authorization': f"Bearer {self.ghost_token}",
-                'Content-Type': 'application/json'
+                "Authorization": f"Bearer {self.ghost_token}",
+                "Content-Type": "application/json",
             }
             print("Adding activities: " + formatted_acts)
             try:
@@ -190,8 +198,8 @@ class SyncIBKR:
 
         payload = json.dumps(act)
         headers = {
-            'Authorization': f"Bearer {self.ghost_token}",
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {self.ghost_token}",
+            "Content-Type": "application/json",
         }
         print("Adding activity: " + json.dumps(act))
         try:
@@ -212,15 +220,15 @@ class SyncIBKR:
             "currency": self.ghost_currency,
             "isExcluded": False,
             "name": "IBKR",
-            "platformId": "9da3a8a7-4795-43e3-a6db-ccb914189737"
+            "platformId": "d6a6e5b3-f1d8-421d-b7c3-139e5acfa857",
         }
 
         url = f"{self.ghost_host}/api/v1/account"
 
         payload = json.dumps(account)
         headers = {
-            'Authorization': f"Bearer {self.ghost_token}",
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {self.ghost_token}",
+            "Content-Type": "application/json",
         }
         try:
             response = requests.request("POST", url, headers=headers, data=payload)
@@ -237,7 +245,7 @@ class SyncIBKR:
 
         payload = {}
         headers = {
-            'Authorization': f"Bearer {self.ghost_token}",
+            "Authorization": f"Bearer {self.ghost_token}",
         }
         try:
             response = requests.request("GET", url, headers=headers, data=payload)
@@ -245,7 +253,7 @@ class SyncIBKR:
             print(e)
             return []
         if response.status_code == 200:
-            return response.json()['accounts']
+            return response.json()["accounts"]
         else:
             raise Exception(response)
 
@@ -266,20 +274,20 @@ class SyncIBKR:
         complete = True
 
         for act in acts:
-            if act['accountId'] == account_id:
-                act_complete = self.delete_act(act['id'])
+            if act["accountId"] == account_id:
+                act_complete = self.delete_act(act["id"])
                 complete = complete and act_complete
                 if act_complete:
-                    print("Deleted: " + act['id'])
+                    print("Deleted: " + act["id"])
                 else:
-                    print("Failed Delete: " + act['id'])
+                    print("Failed Delete: " + act["id"])
         return complete
 
     def get_all_acts_for_account(self, account_id):
         acts = self.get_all_acts()
         filtered_acts = []
         for act in acts:
-            if act['accountId'] == account_id:
+            if act["accountId"] == account_id:
                 filtered_acts.append(act)
         return filtered_acts
 
@@ -288,7 +296,7 @@ class SyncIBKR:
 
         payload = {}
         headers = {
-            'Authorization': f"Bearer {self.ghost_token}",
+            "Authorization": f"Bearer {self.ghost_token}",
         }
         try:
             response = requests.request("GET", url, headers=headers, data=payload)
@@ -297,6 +305,6 @@ class SyncIBKR:
             return []
 
         if response.status_code == 200:
-            return response.json()['activities']
+            return response.json()["activities"]
         else:
             return []
