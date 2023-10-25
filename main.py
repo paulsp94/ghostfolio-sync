@@ -1,5 +1,8 @@
 import os
 from SyncIBKR import SyncIBKR
+from dotenv import load_dotenv
+
+load_dotenv()
 
 SYNCIBKR = "SYNCIBKR"
 
